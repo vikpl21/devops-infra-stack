@@ -14,84 +14,82 @@
 
   tasks:
 
-    # ── SSH HARDENING ──────────────────────────────
     - name: Disable root SSH login
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         regexp: '^PermitRootLogin'
         line: 'PermitRootLogin no'
         state: present
 
     - name: Disable password authentication
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         regexp: '^PasswordAuthentication'
         line: 'PasswordAuthentication no'
         state: present
 
     - name: Set SSH MaxAuthTries
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         regexp: '^MaxAuthTries'
         line: 'MaxAuthTries 3'
         state: present
 
     - name: Set SSH ClientAliveInterval
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         regexp: '^ClientAliveInterval'
         line: 'ClientAliveInterval 300'
         state: present
 
     - name: Disable X11 forwarding
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         regexp: '^X11Forwarding'
         line: 'X11Forwarding no'
         state: present
 
     - name: Restart SSH service
-      systemd:
+      ansible.builtin.systemd:
         name: ssh
         state: restarted
 
-    # ── FIREWALL (UFW) ─────────────────────────────
     - name: Install UFW
-      apt:
+      ansible.builtin.apt:
         name: ufw
         state: present
-        update_cache: yes
+        update_cache: true
 
     - name: Set UFW default deny incoming
-      ufw:
+      community.general.ufw:
         default: deny
         direction: incoming
 
     - name: Set UFW default allow outgoing
-      ufw:
+      community.general.ufw:
         default: allow
         direction: outgoing
 
     - name: Allow required ports
-      ufw:
+      community.general.ufw:
         rule: allow
         port: "{{ item }}"
         proto: tcp
       loop: "{{ allowed_ports }}"
 
     - name: Enable UFW
-      ufw:
+      community.general.ufw:
         state: enabled
 
-    # ── FAIL2BAN ───────────────────────────────────
     - name: Install Fail2ban
-      apt:
+      ansible.builtin.apt:
         name: fail2ban
         state: present
 
     - name: Configure Fail2ban
-      copy:
+      ansible.builtin.copy:
         dest: /etc/fail2ban/jail.local
+        mode: '0644'
         content: |
           [DEFAULT]
           bantime  = 3600
@@ -105,31 +103,30 @@
           backend  = %(sshd_backend)s
 
     - name: Start and enable Fail2ban
-      systemd:
+      ansible.builtin.systemd:
         name: fail2ban
         state: started
-        enabled: yes
+        enabled: true
 
-    # ── AUTOMATIC SECURITY UPDATES ─────────────────
     - name: Install unattended-upgrades
-      apt:
+      ansible.builtin.apt:
         name: unattended-upgrades
         state: present
 
     - name: Enable automatic security updates
-      copy:
+      ansible.builtin.copy:
         dest: /etc/apt/apt.conf.d/20auto-upgrades
+        mode: '0644'
         content: |
           APT::Periodic::Update-Package-Lists "1";
           APT::Periodic::Unattended-Upgrade "1";
 
-    # ── SYSCTL HARDENING ───────────────────────────
     - name: Apply sysctl security settings
-      sysctl:
+      ansible.posix.sysctl:
         name: "{{ item.name }}"
         value: "{{ item.value }}"
         state: present
-        reload: yes
+        reload: true
       loop:
         - { name: 'net.ipv4.ip_forward', value: '0' }
         - { name: 'net.ipv4.conf.all.accept_redirects', value: '0' }
@@ -138,19 +135,20 @@
         - { name: 'net.ipv4.tcp_syncookies', value: '1' }
         - { name: 'kernel.dmesg_restrict', value: '1' }
 
-    # ── VERIFICATION ───────────────────────────────
     - name: Check UFW status
-      command: ufw status verbose
+      ansible.builtin.command: ufw status verbose
       register: ufw_status
+      changed_when: false
 
     - name: Show UFW status
-      debug:
+      ansible.builtin.debug:
         msg: "{{ ufw_status.stdout_lines }}"
 
     - name: Check Fail2ban status
-      command: fail2ban-client status
+      ansible.builtin.command: fail2ban-client status
       register: f2b_status
+      changed_when: false
 
     - name: Show Fail2ban status
-      debug:
+      ansible.builtin.debug:
         msg: "{{ f2b_status.stdout_lines }}"

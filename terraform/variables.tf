@@ -26,3 +26,9 @@ variable "machine_type" {
   type        = string
   default     = "e2-medium" # Free tier!
 }
+
+variable "ssh_public_key" {
+  description = "SSH public key for VM access"
+  type        = string
+  default     = ""
+}

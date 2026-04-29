@@ -42,10 +42,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+    
       - name: Install Ansible & ansible-lint
         run: |
           pip install ansible ansible-lint
+          ansible-galaxy collection install community.general ansible.posix
 
       - name: Run ansible-lint
         run: |
