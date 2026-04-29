@@ -1,0 +1,14 @@
+# Terraform secrets
+terraform/terraform.tfvars
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform/
+terraform/terraform-key.json
+terraform/*.tfplan
+
+# Ansible inventory з реальними IP
+ansible/inventory/hosts.ini
+
+# SSH ключі
+*.pem
+*.key
