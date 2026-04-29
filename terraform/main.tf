@@ -30,7 +30,7 @@ resource "google_compute_firewall" "allow_ssh_http" {
 
   allow {
     protocol = "tcp"
-    ports    = ["22", "80", "443", "5601", "9200"]
+    ports    = ["22", "80", "443", "5601", "9200", "8200"]
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -58,7 +58,7 @@ resource "google_compute_instance" "devops_vm" {
   }
 
   metadata = {
-    ssh-keys = var.ssh_public_key != "" ? "ubuntu:${var.ssh_public_key}" : ""
+    ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
   }
 
   labels = {
