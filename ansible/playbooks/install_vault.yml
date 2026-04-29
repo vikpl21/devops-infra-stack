@@ -1,0 +1,81 @@
+---
+- name: Install HashiCorp Vault
+  hosts: devops_vm
+  become: true
+
+  tasks:
+
+    - name: Create /opt/vault directory
+      ansible.builtin.file:
+        path: /opt/vault
+        state: directory
+        mode: '0755'
+
+    - name: Create Vault config directory
+      ansible.builtin.file:
+        path: /opt/vault/config
+        state: directory
+        mode: '0755'
+
+    - name: Create Vault data directory
+      ansible.builtin.file:
+        path: /opt/vault/data
+        state: directory
+        mode: '0777'
+
+    - name: Create Vault config file
+      ansible.builtin.copy:
+        dest: /opt/vault/config/vault.hcl
+        mode: '0644'
+        content: |
+          storage "file" {
+            path = "/vault/data"
+          }
+
+          listener "tcp" {
+            address     = "0.0.0.0:8200"
+            tls_disable = true
+          }
+
+          api_addr = "http://0.0.0.0:8200"
+          ui       = true
+
+    - name: Create Vault docker-compose file
+      ansible.builtin.copy:
+        dest: /opt/vault/docker-compose.yml
+        mode: '0644'
+        content: |
+          services:
+            vault:
+              image: hashicorp/vault:1.16
+              container_name: vault
+              restart: unless-stopped
+              ports:
+                - "8200:8200"
+              environment:
+                - VAULT_ADDR=http://0.0.0.0:8200
+              cap_add:
+                - IPC_LOCK
+              volumes:
+                - /opt/vault/config:/vault/config
+                - /opt/vault/data:/vault/data
+              command: vault server -config=/vault/config/vault.hcl
+
+    - name: Start Vault
+      community.docker.docker_compose_v2:
+        project_src: /opt/vault
+        state: present
+
+    - name: Wait for Vault to be ready
+      ansible.builtin.uri:
+        url: "http://localhost:8200/v1/sys/health"
+        method: GET
+        status_code: [200, 429, 472, 473, 501, 503]
+      register: vault_result
+      until: vault_result.status in [200, 429, 472, 473, 501, 503]
+      retries: 10
+      delay: 5
+
+    - name: Vault is ready
+      ansible.builtin.debug:
+        msg: "Vault is up! Status code: {{ vault_result.status }}"
