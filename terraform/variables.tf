@@ -6,7 +6,7 @@ variable "project_id" {
 variable "region" {
   description = "GCP region"
   type        = string
-  default     = "europe-central2"  # Варшава — найближче до тебе
+  default     = "europe-central2" # Варшава — найближче до тебе
 }
 
 variable "zone" {
@@ -24,5 +24,5 @@ variable "instance_name" {
 variable "machine_type" {
   description = "GCP machine type"
   type        = string
-  default     = "e2-medium"  # Free tier!
+  default     = "e2-medium" # Free tier!
 }
