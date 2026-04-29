@@ -7,19 +7,18 @@
     elk_version: "8.13.0"
 
   tasks:
+
     - name: Create /opt/elk directory
-      file:
+      ansible.builtin.file:
         path: /opt/elk
         state: directory
         mode: '0755'
 
     - name: Copy ELK docker-compose file
-      copy:
+      ansible.builtin.copy:
         dest: /opt/elk/docker-compose.yml
         mode: '0644'
         content: |
-          version: '3.8'
-
           services:
             elasticsearch:
               image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
@@ -71,14 +70,15 @@
               driver: bridge
 
     - name: Create Logstash pipeline directory
-      file:
+      ansible.builtin.file:
         path: /opt/elk/logstash/pipeline
         state: directory
         mode: '0755'
 
     - name: Create Logstash pipeline config
-      copy:
+      ansible.builtin.copy:
         dest: /opt/elk/logstash/pipeline/logstash.conf
+        mode: '0644'
         content: |
           input {
             udp {
@@ -86,7 +86,6 @@
               codec => json
             }
           }
-
           filter {
             if [message] {
               mutate {
@@ -94,7 +93,6 @@
               }
             }
           }
-
           output {
             elasticsearch {
               hosts => ["http://elasticsearch:9200"]
@@ -106,20 +104,19 @@
           }
 
     - name: Set vm.max_map_count for Elasticsearch
-      sysctl:
+      ansible.posix.sysctl:
         name: vm.max_map_count
         value: '262144'
         state: present
-        reload: yes
+        reload: true
 
     - name: Start ELK Stack
       community.docker.docker_compose_v2:
         project_src: /opt/elk
         state: present
-      register: elk_output
 
     - name: Wait for Elasticsearch to be ready
-      uri:
+      ansible.builtin.uri:
         url: "http://localhost:9200"
         method: GET
         status_code: 200
@@ -129,6 +126,5 @@
       delay: 10
 
     - name: Elasticsearch is ready
-      debug:
-        msg: "✅ Elasticsearch is up and running!"
-
+      ansible.builtin.debug:
+        msg: "Elasticsearch is up and running!"
