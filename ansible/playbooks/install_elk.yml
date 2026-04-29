@@ -131,3 +131,4 @@
     - name: Elasticsearch is ready
       debug:
         msg: "✅ Elasticsearch is up and running!"
+
